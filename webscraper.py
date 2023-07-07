@@ -38,12 +38,10 @@ while value <= 230620:
             sum += int(td.text.strip()) 
    
 
-
+        print(f"{name} score is {sum}/750")
         
 
         value +=1
     except:
         value+=1
         continue
-
-print("------------------------ Mission successfully completed ---------------------")
