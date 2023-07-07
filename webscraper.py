@@ -2,46 +2,64 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait 
 from selenium.webdriver.support import expected_conditions as EC
-from .models import 
-driver = webdriver.Chrome()
+from selenium.common.exceptions import NoSuchElementException, TimeoutException
+import logging
+logging.basicConfig(level=logging.INFO)
+
+INPUT_LOCATOR = By.NAME, "x_st_settingno" 
+SUBMIT_BUTTON_LOCATOR = By.ID, "Submit"
+LINK_LOCATOR = By.XPATH, '//a[text()="معاينة"]'
+
+driver = webdriver.Chrome() 
+
+def get_name():
+    return driver.find_element(By.TAG_NAME,"form").find_elements(By.TAG_NAME,"table")[0].find_elements(By.TAG_NAME,"tr")[2].find_elements(By.TAG_NAME,"td")[1].text
+
+def get_score():
+    grades = driver.find_elements(By.TAG_NAME,"table")[2].find_elements(By.TAG_NAME,"tr")[2:7]
+    sum =0
+    for grade in grades:
+        td = grade.find_elements(By.TAG_NAME,"td")[3]  
+        try:
+            sum += int(td.text.strip())
+        except ValueError:
+            pass 
+    return sum   
 
 # Enter value in input
 value = 230001
 
-while value <= 230620:
+while value <= 230615:
+
     driver.get("http://app1.helwan.edu.eg/FaslAU/EngHelwan/HasasnUpMlist.asp")
     reset = driver.find_element(By.NAME,"Reset")
     reset.click()
-    try:
-        input = driver.find_element(By.NAME,"x_st_settingno")
+
+    try: 
+        input = driver.find_element(*INPUT_LOCATOR)
         input.send_keys(value)
 
         # Click submit button    
-        button = driver.find_element(By.ID,"Submit")
+        button = driver.find_element(*SUBMIT_BUTTON_LOCATOR)
         button.click()
 
         link = WebDriverWait(driver, 10).until(
-            EC.element_to_be_clickable((By.XPATH, '//a[text()="معاينة"]'))
+            EC.element_to_be_clickable(LINK_LOCATOR)
         )
 
-        # Click link
+        # Click link 
         link.click()
-
-        # Get URL of current page 
-        name=driver.find_element(By.TAG_NAME,"form").find_elements(By.TAG_NAME,"table")[0].find_elements(By.TAG_NAME,"tr")[2].find_elements(By.TAG_NAME,"td")[1]
-        # Get all tr elements from index 2 to 4 (inclusive)
-        grades = driver.find_elements(By.TAG_NAME,"table")[2].find_elements(By.TAG_NAME,"tr")[2:7]
-        sum =0
-        for grade in grades:
-            # Get the 3rd td element (index 2)
-            td = grade.find_elements(By.TAG_NAME,"td")[3]  
-            sum += int(td.text.strip()) 
-   
-
-        print(f"{name} score is {sum}/750")
         
+        name = get_name()
+        score = get_score()   
 
-        value +=1
-    except:
-        value+=1
-        continue
+        logging.info(f"{name} score is {score}/750")  
+        
+    except NoSuchElementException:
+        logging.exception(f"Element with value {value} not found.") 
+    except TimeoutException:
+        logging.exception(f"Timed out waiting for page to load with value {value}.")
+        
+    value +=1  
+
+    
